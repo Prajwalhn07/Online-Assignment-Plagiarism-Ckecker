@@ -1,0 +1,31 @@
+ 
+ import re 
+                def find assignments(code): 
+# A regular expression pattern to match variable assignments 
+pattern = r'(\w+) \s*=\s*([^#\n]+)' # This assumes simple assignment patterns assignments = 
+refundable (pattern, code) 
+return assignments 
+ 
+def check plagiarism (code1, code2): 
+# Extract assignments from both code snippets 
+assignments1 = set (find assignments(code1)) 
+assignments2 = set (find assignments(code2)) 
+ 
+# Check for common assignments between the two code snippets common 
+assignments = assignments1.intersection(assignments2) 
+ 
+if common assignments: 
+return plagiarism detected. Common assignments: {common assignments}" else: 
+return "No plagiarism detected." 
+ 
+# Example usage 
+code_snippet1 = """ x = 5 
+ y = x + 2 
+ z = x * y
+""" 
+code_snippet2 = """ 
+a = 5 
+b = a + 2 
+c = a * b """ 
+result = check plagiarism (code_snippet1, code_snippet2) 
+print(result)
