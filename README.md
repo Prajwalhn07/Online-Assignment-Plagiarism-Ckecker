@@ -1,65 +1,57 @@
-1. Backend: Python with Flask/Django
-Python is an excellent choice for the backend due to its powerful libraries for text manipulation and data processing.
+# app.py - Flask backend
+from flask import Flask, request, jsonify, render_template
+import difflib
+import re
 
-Required Libraries:
-Flask or Django: These are web frameworks used to build the server-side application. Flask is great for small to medium-sized projects, while Django is more suitable for large, complex applications.
+app = Flask(__name__)
 
-scikit-learn (for TF-IDF): This library is used for machine learning and can be utilized to implement TF-IDF (Term Frequency-Inverse Document Frequency), a statistical measure that evaluates how important a word is to a document in a collection.
+def preprocess_text(text):
+    """Clean and tokenize text."""
+    # Remove punctuation and lowercase
+    text = re.sub(r'[^\w\s]', '', text).lower()
+    return set(text.split())
 
-NLTK (Natural Language Toolkit): A suite of libraries and programs for symbolic and statistical natural language processing. It's useful for tokenization (breaking text into words or sentences) and removing stop words (common words like "the," "a," "is," etc.).
+@app.route('/')
+def home():
+    return render_template('index.html')
 
-Difflib: A built-in Python library for comparing sequences. It's useful for finding differences and similarities between two strings.
+@app.route('/check', methods=['POST'])
+def check_plagiarism():
+    # Assume we get two text inputs from the form
+    text1 = request.form.get('text1')
+    text2 = request.form.get('text2')
 
-Jaccard Similarity (can be implemented manually): A metric for gauging the similarity between two sets. It's calculated as the size of the intersection divided by the size of the union of the two sets.
+    if not text1 or not text2:
+        return jsonify({'error': 'Please provide both texts.'}), 400
 
-Core Plagiarism Logic:
-The heart of the plagiarism checker is the algorithm that compares documents. A common approach is to use a combination of different techniques for a more robust result.
+    # Preprocess the texts
+    set1 = preprocess_text(text1)
+    set2 = preprocess_text(text2)
 
-Preprocessing: Before comparison, text from both documents needs to be cleaned. This involves:
+    # Jaccard Similarity Calculation
+    intersection = set1.intersection(set2)
+    union = set1.union(set2)
+    jaccard_similarity = len(intersection) / len(union) if union else 0
 
-Lowercasing: Convert all text to lowercase to ensure case-insensitive comparison.
+    # Find matching lines using difflib for highlighting
+    s = difflib.SequenceMatcher(None, text1.splitlines(), text2.splitlines())
+    matches = s.get_matching_blocks()
 
-Tokenization: Split the text into individual words or "tokens."
+    # Create a list of matching spans for the frontend to highlight
+    match_details = []
+    for block in matches:
+        if block.size > 0:
+            match_details.append({
+                'text1_start': block.a,
+                'text1_end': block.a + block.size,
+                'text2_start': block.b,
+                'text2_end': block.b + block.size
+            })
 
-Stop Word Removal: Eliminate common words that don't add much meaning to the text.
+    return jsonify({
+        'plagiarism_score': f'{jaccard_similarity * 100:.2f}%',
+        'match_details': match_details
+    })
 
-Stemming/Lemmatization: Reduce words to their root form (e.g., "running" becomes "run").
-
-Comparison Algorithm: A simple but effective method is to use Jaccard Similarity.  It measures the similarity between two sets of words. The formula is:
-
-J(A,B)= 
-∣A∪B∣
-∣A∩B∣
-​
- 
-
-Here, A and B are the sets of unique words from the two documents.
-
-Advanced Comparison (TF-IDF with Cosine Similarity): For a more sophisticated checker, you can convert the documents into numerical vectors using TF-IDF. This method gives more weight to rare words that are more indicative of a document's content. The similarity between these vectors is then calculated using Cosine Similarity, which measures the cosine of the angle between two vectors. A cosine similarity of 1 means the vectors are identical.
-
-Cosine Similarity(A,B)= 
-∥A∥∥B∥
-A⋅B
-​
- 
-2. Frontend: HTML, CSS, JavaScript
-The frontend is what the user interacts with. It's responsible for allowing the user to upload files or paste text and then displaying the plagiarism results.
-
-HTML: Provides the structure for the web page, including file upload forms, text areas, and result display sections.
-
-CSS: Styles the HTML elements, making the interface visually appealing and user-friendly.
-
-JavaScript: Handles client-side logic, such as:
-
-Form Submission: Sending the submitted text/files to the backend server.
-
-AJAX (Asynchronous JavaScript and XML): Used to communicate with the backend without reloading the entire page. This allows for a smoother user experience.
-
-Displaying Results: Dynamically updating the page with the plagiarism score and highlighted text.
-
-3. Database (Optional but Recommended)
-A database is crucial for storing submitted assignments and using them as a corpus for plagiarism checks.
-
-SQLite (for simple projects) or PostgreSQL/MySQL (for larger ones): Store assignments and their metadata (e.g., student name, submission date). This allows you to compare a new submission against all previous submissions, not just a single one.
-
-Example Code Snippets (Python - Flask)
+if __name__ == '__main__':
+    app.run(debug=True)
